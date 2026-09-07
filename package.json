@@ -1,0 +1,32 @@
+{
+  "name": "mcp-server-atlassian",
+  "version": "1.0.0",
+  "description": "MCP server for Jira and Confluence (Server/Data Center)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "mcp-server-atlassian": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "start": "node dist/index.js",
+    "start:local": "node --env-file=.env dist/index.js",
+    "dev": "tsc --watch",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "inspect:local": "npx @modelcontextprotocol/inspector node --env-file=.env dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "shx": "^0.4.0",
+    "typescript": "7.0.2"
+  }
+}
