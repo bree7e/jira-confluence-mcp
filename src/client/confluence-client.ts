@@ -16,7 +16,7 @@ export class ConfluenceClient {
   constructor(baseUrl: string, username: string, apiToken: string) {
     // Confluence Server/DC v8+ использует Personal Access Token (Bearer)
     this.http = new HttpClient({
-      baseUrl,
+      baseUrl: baseUrl.replace(/\/+$/, ""),
       username,
       apiToken,
       authType: "bearer",
@@ -72,7 +72,35 @@ export class ConfluenceClient {
     );
   }
 
+  get sourceBaseUrl(): string { return this.baseUrl; }
+
   async listSpaces(): Promise<ConfluenceSpacesResult> {
     return this.http.get<ConfluenceSpacesResult>("/rest/api/space");
+  }
+
+  async findPageByTitle(title: string, space: string): Promise<ConfluencePage> {
+    const query = new URLSearchParams({ title, spaceKey: space, type: "page", limit: "2" });
+    const result = await this.http.get<ConfluenceSearchResult>(`/rest/api/content?${query}`);
+    if (result.results.length !== 1) throw new Error(`Cannot uniquely resolve page: ${space}/${title}`);
+    return result.results[0];
+  }
+
+  async getAttachmentUrl(pageId: string, filename: string): Promise<string> {
+    const query = new URLSearchParams({ filename, limit: "2" });
+    const result = await this.http.get<{ results: { _links: { download?: string } }[] }>(
+      `/rest/api/content/${encodeURIComponent(pageId)}/child/attachment?${query}`,
+    );
+    const download = result.results[0]?._links.download;
+    if (result.results.length !== 1 || !download) throw new Error(`Cannot resolve attachment: ${filename}`);
+    return this.resolveUrl(download, true);
+  }
+
+  resolveUrl(value: string, contextRelative = false): string {
+    const base = new URL(this.baseUrl);
+    const context = base.pathname.replace(/\/$/, "");
+    if (contextRelative && value.startsWith("/") && !value.startsWith("//") && context && !value.startsWith(`${context}/`)) {
+      return new URL(`${this.baseUrl}${value}`).href;
+    }
+    return new URL(value, `${this.baseUrl}/`).href;
   }
 }

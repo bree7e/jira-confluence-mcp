@@ -1,3 +1,4 @@
+import { registerExportMarkdown } from "./export-markdown.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ConfluenceClient } from "../../client/confluence-client.js";
 import { registerSearchPages } from "./search-pages.js";
@@ -15,6 +16,7 @@ export function registerConfluenceTools(
 ): void {
   registerSearchPages(server, client);
   registerGetPage(server, client);
+  registerExportMarkdown(server, client);
   registerCreatePage(server, client);
   registerUpdatePage(server, client);
   registerListSpaces(server, client);

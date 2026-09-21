@@ -1,0 +1,27 @@
+{
+  "id": "123",
+  "type": "page",
+  "status": "current",
+  "title": "Тест: \"Импорт\" #1",
+  "space": {
+    "id": "1",
+    "key": "ZPA",
+    "name": "Test"
+  },
+  "version": {
+    "number": 2,
+    "when": "2026-09-09T17:20:00+0300",
+    "by": {
+      "displayName": "Test"
+    }
+  },
+  "_links": {
+    "self": ""
+  },
+  "body": {
+    "storage": {
+      "representation": "storage",
+      "value": "<ac:structured-macro ac:name=\"section\"><ac:rich-text-body><ac:structured-macro ac:name=\"toc\"/></ac:rich-text-body></ac:structured-macro>\n<h1>Требования</h1><p>Текст &amp; символы <strong>важно</strong>, <s>устарело</s>, <code>a|b</code>.</p>\n<h2>Списки</h2><ol start=\"3\"><li>Третий<ul><li>Вложенный</li></ul></li><li>Четвёртый</li></ol>\n<table><tbody><tr><th>Поле</th><th>Значение</th></tr><tr><td>A | B</td><td>Один<br/>Два</td></tr></tbody></table>\n<table><tbody><tr><th>Шаг</th><th>Действие</th></tr><tr><td rowspan=\"2\">Общий</td><td><ol><li>Первый</li><li>Второй<ul><li>Подшаг</li></ul></li></ol></td></tr><tr><td><p>Абзац 1</p><p>Абзац 2</p></td></tr></tbody></table>\n<table><tr><th>История</th><td><ac:structured-macro ac:name=\"jira\"><ac:parameter ac:name=\"key\">IDPPA-3514</ac:parameter></ac:structured-macro></td></tr></table>\n<p><ac:image><ri:url ri:value=\"https://example.com/original.png\"/></ac:image></p>\n<p><ac:link><ri:page ri:content-id=\"456\"/><ac:plain-text-link-body><![CDATA[Другая история]]></ac:plain-text-link-body></ac:link></p>\n<ac:structured-macro ac:name=\"code\"><ac:parameter ac:name=\"language\">js</ac:parameter><ac:plain-text-body><![CDATA[const x = \"<tag>\";]]></ac:plain-text-body></ac:structured-macro>\n<ac:structured-macro ac:name=\"unknown\"><ac:rich-text-body><p>Не потерять этот текст</p></ac:rich-text-body></ac:structured-macro>\n<h6>Глубокий заголовок</h6>\n"
+    }
+  }
+}

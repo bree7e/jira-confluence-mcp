@@ -18,14 +18,25 @@
     "start:local": "node --env-file=.env dist/index.js",
     "dev": "tsc --watch",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "inspect:local": "npx @modelcontextprotocol/inspector node --env-file=.env dist/index.js"
+    "inspect:local": "npx @modelcontextprotocol/inspector node --env-file=.env dist/index.js",
+    "import:confluence": "node dist/import-confluence.js",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
+    "cheerio": "^1.0.0",
+    "rehype-parse": "^9.0.1",
+    "rehype-remark": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-stringify": "^11.0.0",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2",
+    "unified": "^11.0.5",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/turndown": "^5.0.6",
     "shx": "^0.4.0",
     "typescript": "7.0.2"
   }
