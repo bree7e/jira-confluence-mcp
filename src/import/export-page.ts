@@ -1,9 +1,10 @@
+import { restoreTableReferences } from "./tables.js";
 import type { ConfluenceClient } from "../client/confluence-client.js";
 import type { ConfluencePage } from "../types/confluence.js";
 import type { MarkdownConverter } from "./converters.js";
 import { normalize, type SourceResolver } from "./normalize.js";
 
-export const FORMAT_VERSION = "1";
+export const FORMAT_VERSION = "3";
 export interface ExportResult {
   markdown: string;
   pageId: string;
@@ -101,9 +102,7 @@ export async function renderPage(
     .replace(/\s+/g, " ")
     .replace(/([\\`*_[\]<>])/g, "\\$1");
   const converted = await converter.convert(prepared.html);
-  const body = converted
-    .replace(/^CFANCHOR(table-\d+-r\d+-c\d+)END$/gm, '<a id="$1"></a>')
-    .trim();
+  const body = restoreTableReferences(converted, prepared.tableReplacements).trim();
   return {
     markdown: metadata + "\n\n# " + escapedTitle + "\n\n" + body + "\n",
     pageId: page.id,

@@ -62,8 +62,8 @@ for (const converter of Object.values(converters)) {
         md,
         /https:\/\/example.com\/wiki\/pages\/viewpage.action\?pageId=456/,
       );
-      assert.match(md, /<a id="table-2-r2-c2"><\/a>/);
-      assert.match(md, /\(#table-2-r2-c2\)/);
+      assert.doesNotMatch(md, /<a id=|###### Таблица/);
+      assert.match(md, /\|\s*Шаг\s*\|\s*Действие\s*\|/);
       assert.match(md, /Подшаг/);
       assert.match(md, /Абзац 1/);
       assert.match(md, /Абзац 2/);

@@ -1,4 +1,5 @@
 import { load } from "cheerio";
+import { normalizeTables } from "./tables.js";
 import type { ConfluencePage } from "../types/confluence.js";
 
 export interface SourceResolver {
@@ -207,109 +208,17 @@ export async function normalize(
     node.replaceWith($("<" + tag + "></" + tag + ">").append(node.contents()));
   });
 
-  // Number in source order, process inner tables first.
-  const tables = $("table").toArray();
-  for (const table of [...tables].reverse()) {
-    const tableNumber = tables.indexOf(table) + 1;
-    const node = $(table),
-      rows = node
-        .find("tr")
-        .filter((_, row) => $(row).closest("table")[0] === table)
-        .toArray();
-    const details = $("<div></div>");
-    const grid: string[][] = [];
-    let complex = false;
-    rows.forEach((row, r) => {
-      grid[r] ||= [];
-      let c = 0;
-      $(row)
-        .children("td,th")
-        .each((_, cell) => {
-          while (grid[r][c] !== undefined) c++;
-          const item = $(cell);
-          const rowspan = Math.max(
-            1,
-            Math.min(Number(item.attr("rowspan")) || 1, rows.length - r),
-          );
-          const colspan = Math.max(
-            1,
-            Math.min(Number(item.attr("colspan")) || 1, 100),
-          );
-          let value = item.html() || "";
-          const block =
-            item.find("ul,ol,pre,table,h1,h2,h3,h4,h5,h6").length ||
-            item.find("p").length > 1;
-          if (block) {
-            complex = true;
-            const label =
-              "Таблица " +
-              tableNumber +
-              ", строка " +
-              (r + 1) +
-              ", столбец " +
-              (c + 1);
-            const anchor =
-              "table-" + tableNumber + "-r" + (r + 1) + "-c" + (c + 1);
-            // A separate renderer restores an explicit anchor after Markdown conversion.
-            details.append($("<p></p>").text("CFANCHOR" + anchor + "END"));
-            details.append($("<h6></h6>").text(label));
-            details.append(item.contents().clone());
-            value = $.html(makeLink(label, "#" + anchor));
-          } else {
-            item.find("p,div").each((_, p) => {
-              $(p).replaceWith($(p).contents());
-            });
-            value = item.html() || "";
-          }
-          for (let dr = 0; dr < rowspan; dr++) {
-            grid[r + dr] ||= [];
-            for (let dc = 0; dc < colspan; dc++) grid[r + dr][c + dc] = value;
-          }
-          if (rowspan > 1 || colspan > 1) {
-            complex = true;
-            note(
-              "Table " +
-                tableNumber +
-                ": merged cell repeated across its rows/columns",
-            );
-          }
-          c += colspan;
-        });
-    });
-    const width = Math.max(0, ...grid.map((r) => r.length));
-    if (!width) {
-      node.remove();
-      continue;
-    }
-    const hasHeader = rows.length && $(rows[0]).children("td").length === 0;
-    const output = $("<table><thead></thead><tbody></tbody></table>");
-    const header = hasHeader
-      ? grid.shift()!
-      : Array.from({ length: width }, (_, i) => "Столбец " + (i + 1));
-    const appendRow = (values: string[], tag: "th" | "td", parent: string) => {
-      const row = $("<tr></tr>");
-      for (let i = 0; i < width; i++)
-        row.append($("<" + tag + "></" + tag + ">").html(values[i] || ""));
-      output.find(parent).append(row);
-    };
-    appendRow(header, "th", "thead");
-    grid.forEach((values) => appendRow(values, "td", "tbody"));
-    node.replaceWith(output);
-    output.after(details);
-    if (complex)
-      note(
-        "Table " + tableNumber + ": complex cells extracted into linked blocks",
-      );
-  }
+  const tableReplacements = normalizeTables($, note);
   $("*").each((_, el) => {
     if ("tagName" in el && el.tagName.includes(":")) {
       note("Unprocessed element: " + el.tagName);
       $(el).replaceWith($(el).contents());
     }
   });
-  // Serialize normalized HTML for either Markdown engine.
+  // Serialize normalized HTML for the Markdown adapter.
   return {
     html: $.root().html() || "",
+    tableReplacements,
     warnings: [...new Set(warnings)],
     links: [...links].sort(),
   };
