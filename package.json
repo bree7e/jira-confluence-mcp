@@ -29,14 +29,11 @@
     "rehype-remark": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-stringify": "^11.0.0",
-    "turndown": "^7.2.4",
-    "turndown-plugin-gfm": "^1.0.2",
     "unified": "^11.0.5",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/turndown": "^5.0.6",
     "shx": "^0.4.0",
     "typescript": "7.0.2"
   }

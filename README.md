@@ -163,25 +163,24 @@ Jira credentials не нужны; JIRA_URL необязателен и зада�
 Без него используется origin Confluence. Для Jira с отдельным хостом или context path задайте его явно.
 Существующие переменные окружения имеют приоритет над .env.
 
-### Сравнение движков
+### Движок преобразования
+
+Для импорта используется remark:
 
 ```powershell
-node --env-file=.env dist/import-confluence.js 468684852 --compare --out imports/comparison
-node --env-file=.env dist/import-confluence.js 468684852 478273679 --converter turndown --out imports
+node --env-file=.env dist/import-confluence.js 468684852 478273679 --converter remark --out imports
 npm run import:confluence -- --help
 ```
 
-Режим --compare получает одну версию страницы, нормализует её один раз и создаёт
-imports/comparison/remark/<pageId>.md и imports/comparison/turndown/<pageId>.md.
-Окончательный движок пока не выбран; временное значение по умолчанию — remark.
-Адаптер MarkdownConverter в src/import/converters.ts имеет поля id, version и convert(html).
-Нормализация Confluence и файловая синхронизация общие.
+remark — единственный встроенный движок и значение по умолчанию.
+Интерфейс MarkdownConverter в src/import/converters.ts сохранён: id, version и convert(html).
+Нормализация Confluence и файловая синхронизация независимы от адаптера.
 При изменении правил увеличивайте FORMAT_VERSION, при изменении адаптера — его version.
 
 Офлайн-пример без сети и учётных данных:
 
 ```powershell
-node dist/import-confluence.js --fixture test/fixtures/page.json --compare --out imports/comparison
+node dist/import-confluence.js --fixture test/fixtures/page.json --out imports/sample
 ```
 
 Fixture — JSON страницы REST API с id, title, space, version, body.storage.
@@ -255,6 +254,6 @@ updated — дата версии страницы в часовом поясе 
 npm test
 ```
 
-Тесты проверяют оба конвертера, метаданные, таблицы, ссылки, макросы, конфликты,
+Тесты проверяют конвертацию, метаданные, таблицы, ссылки, макросы, конфликты,
 неизменность файлов при повторном импорте, CLI с локальным HTTP-сервером и MCP-обработчик.
 Реальная доступность конкретных страниц зависит от прав токена Confluence.

@@ -15,42 +15,76 @@ export interface ExportResult {
   linkedPageIds: string[];
 }
 
-export function createResolver(client: ConfluenceClient, baseUrl: string, jiraUrl?: string): SourceResolver {
+export function createResolver(
+  client: ConfluenceClient,
+  baseUrl: string,
+  jiraUrl?: string,
+): SourceResolver {
   const pages = new Map<string, Promise<string>>();
   const attachments = new Map<string, Promise<string>>();
   return {
-    pageUrl: id => baseUrl.replace(/\/+$/, "") + "/pages/viewpage.action?pageId=" + encodeURIComponent(id),
-    absoluteUrl: value => client.resolveUrl(value),
+    pageUrl: (id) =>
+      baseUrl.replace(/\/+$/, "") +
+      "/pages/viewpage.action?pageId=" +
+      encodeURIComponent(id),
+    absoluteUrl: (value) => client.resolveUrl(value),
     findPage(title, space) {
       const key = JSON.stringify([space, title]);
-      if (!pages.has(key)) pages.set(key, client.findPageByTitle(title, space).then(page => page.id));
+      if (!pages.has(key))
+        pages.set(
+          key,
+          client.findPageByTitle(title, space).then((page) => page.id),
+        );
       return pages.get(key)!;
     },
     attachment(id, filename) {
       const key = JSON.stringify([id, filename]);
-      if (!attachments.has(key)) attachments.set(key, client.getAttachmentUrl(id, filename));
+      if (!attachments.has(key))
+        attachments.set(key, client.getAttachmentUrl(id, filename));
       return attachments.get(key)!;
     },
     jiraUrl(key, jql) {
       const base = (jiraUrl || new URL(baseUrl).origin).replace(/\/+$/, "");
-      return key ? base + "/browse/" + encodeURIComponent(key) : base + "/issues/?jql=" + encodeURIComponent(jql || "");
+      return key
+        ? base + "/browse/" + encodeURIComponent(key)
+        : base + "/issues/?jql=" + encodeURIComponent(jql || "");
     },
   };
 }
 
-export async function preparePage(page: ConfluencePage, resolver: SourceResolver) {
-  if (!/^\d+$/.test(page.id) || !page.title || !page.space?.key
-    || !Number.isInteger(page.version?.number) || !page.version?.when
-    || typeof page.body?.storage?.value !== "string") {
-    throw new Error("Incomplete page: id, title, space, version, timestamp and body.storage are required");
+export async function preparePage(
+  page: ConfluencePage,
+  resolver: SourceResolver,
+) {
+  if (
+    !/^\d+$/.test(page.id) ||
+    !page.title ||
+    !page.space?.key ||
+    !Number.isInteger(page.version?.number) ||
+    !page.version?.when ||
+    typeof page.body?.storage?.value !== "string"
+  ) {
+    throw new Error(
+      "Incomplete page: id, title, space, version, timestamp and body.storage are required",
+    );
   }
-  if (!/^\d{4}-\d{2}-\d{2}T/.test(page.version.when) || !Number.isFinite(Date.parse(page.version.when))) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}T/.test(page.version.when) ||
+    !Number.isFinite(Date.parse(page.version.when))
+  ) {
     throw new Error("Invalid Confluence version timestamp");
   }
-  return { page, source: resolver.pageUrl(page.id), ...await normalize(page, resolver) };
+  return {
+    page,
+    source: resolver.pageUrl(page.id),
+    ...(await normalize(page, resolver)),
+  };
 }
 
-export async function renderPage(prepared: Awaited<ReturnType<typeof preparePage>>, converter: MarkdownConverter): Promise<ExportResult> {
+export async function renderPage(
+  prepared: Awaited<ReturnType<typeof preparePage>>,
+  converter: MarkdownConverter,
+): Promise<ExportResult> {
   const { page, source } = prepared;
   const quote = (value: string) => JSON.stringify(value); // JSON strings are valid YAML scalars.
   const metadata = [
@@ -63,13 +97,21 @@ export async function renderPage(prepared: Awaited<ReturnType<typeof preparePage
     "updated: " + quote(page.version!.when.slice(0, 10)),
     "---",
   ].join("\n");
-  const escapedTitle = page.title.replace(/\s+/g, " ").replace(/([\\`*_[\]<>])/g, "\\$1");
+  const escapedTitle = page.title
+    .replace(/\s+/g, " ")
+    .replace(/([\\`*_[\]<>])/g, "\\$1");
   const converted = await converter.convert(prepared.html);
-  const body = converted.replace(/^CFANCHOR(table-\d+-r\d+-c\d+)END$/gm, '<a id="$1"></a>').trim();
+  const body = converted
+    .replace(/^CFANCHOR(table-\d+-r\d+-c\d+)END$/gm, '<a id="$1"></a>')
+    .trim();
   return {
     markdown: metadata + "\n\n# " + escapedTitle + "\n\n" + body + "\n",
-    pageId: page.id, version: page.version!.number, source,
-    converter: converter.id, converterVersion: converter.version + ":" + FORMAT_VERSION,
-    warnings: prepared.warnings, linkedPageIds: prepared.links,
+    pageId: page.id,
+    version: page.version!.number,
+    source,
+    converter: converter.id,
+    converterVersion: converter.version + ":" + FORMAT_VERSION,
+    warnings: prepared.warnings,
+    linkedPageIds: prepared.links,
   };
 }

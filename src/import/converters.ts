@@ -1,5 +1,3 @@
-import TurndownService from "turndown";
-import { gfm } from "turndown-plugin-gfm";
 import { unified } from "unified";
 import rehypeParse from "rehype-parse";
 import rehypeRemark from "rehype-remark";
@@ -13,37 +11,32 @@ export interface MarkdownConverter {
   convert(html: string): Promise<string>;
 }
 
-const turndown = new TurndownService({ headingStyle: "atx", bulletListMarker: "-", codeBlockStyle: "fenced",
-  blankReplacement: (_content, node) => ["TD", "TH"].includes(node.nodeName)
-    ? (node.previousSibling ? " " : "| ") + " |" : ("isBlock" in node && node.isBlock ? "\n\n" : ""),
-});
-turndown.use(gfm);
-turndown.addRule("strictStrikethrough", {
-  filter: node => ["DEL", "S", "STRIKE"].includes(node.nodeName),
-  replacement: content => "~~" + content + "~~",
-});
-turndown.addRule("safeTableCell", {
-  filter: ["th", "td"],
-  replacement(content, node) {
-    const prefix = node.previousSibling ? " " : "| ";
-    return prefix + content.trim().replace(/\|/g, "\\|").replace(/\s*\n\s*/g, "<br>") + " |";
-  },
-});
-
-
 export const converters: Record<string, MarkdownConverter> = {
-  turndown: { id: "turndown", version: "1", async convert(html) { return turndown.turndown(html); } },
   remark: {
-    id: "remark", version: "1",
+    id: "remark",
+    version: "1",
     async convert(html) {
-      return String(await unified().use(rehypeParse, { fragment: true }).use(rehypeRemark, { handlers: { br: () => ({ type: "html", value: "<br>" }) } })
-        .use(remarkGfm).use(remarkStringify, { bullet: "-", fences: true }).process(html));
+      return String(
+        await unified()
+          .use(rehypeParse, { fragment: true })
+          .use(rehypeRemark, {
+            handlers: { br: () => ({ type: "html", value: "<br>" }) },
+          })
+          .use(remarkGfm)
+          .use(remarkStringify, { bullet: "-", fences: true })
+          .process(html),
+      );
     },
   },
 };
 
 export function getConverter(name: string): MarkdownConverter {
-  const converter = Object.hasOwn(converters, name) ? converters[name] : undefined;
-  if (!converter) throw new Error(`Unknown converter: ${name}. Available: ${Object.keys(converters).join(", ")}`);
+  const converter = Object.hasOwn(converters, name)
+    ? converters[name]
+    : undefined;
+  if (!converter)
+    throw new Error(
+      `Unknown converter: ${name}. Available: ${Object.keys(converters).join(", ")}`,
+    );
   return converter;
 }
