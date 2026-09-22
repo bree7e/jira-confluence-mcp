@@ -8,6 +8,7 @@ import {
   createResolver,
   preparePage,
   renderPage,
+  parseModules,
 } from "./import/export-page.js";
 import { saveImport } from "./import/importer.js";
 import type { ConfluencePage } from "./types/confluence.js";
@@ -19,12 +20,13 @@ async function main() {
       out: { type: "string", default: "imports" },
       converter: { type: "string", default: "remark" },
       fixture: { type: "string" },
+      modules: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     console.log(
-      "node --env-file=.env dist/import-confluence.js <pageId> [pageId...] [--out imports] [--converter remark]\n" +
+      "node --env-file=.env dist/import-confluence.js <pageId> [pageId...] [--out imports] [--converter remark] [--modules=ma,qc]\n" +
         "Offline: node dist/import-confluence.js --fixture test/fixtures/page.json --out samples\n" +
         "CLI requires CONFLUENCE_URL and CONFLUENCE_API_TOKEN (no Jira credentials).",
     );
@@ -41,6 +43,7 @@ async function main() {
   for (const id of positionals)
     if (!/^\d+$/.test(id)) throw new Error("Invalid page ID: " + id);
   const converter = getConverter(values.converter);
+  const modules = values.modules === undefined ? [] : parseModules(values.modules);
   const base = (
     process.env.CONFLUENCE_URL ||
     (values.fixture ? "https://confluence.example.com/wiki" : "")
@@ -73,7 +76,7 @@ async function main() {
           ? await client.getPage(input, ["space", "version", "body.storage"])
           : input;
       const prepared = await preparePage(page, resolver);
-      const result = await renderPage(prepared, converter);
+      const result = await renderPage(prepared, converter, modules);
       const report = await saveImport(result, values.out);
       reports.push({ converter: converter.id, ...report });
       if (report.status === "conflict") process.exitCode = 1;

@@ -24,13 +24,15 @@ export function registerExportMarkdown(
           .enum(["remark"])
           .default("remark")
           .describe("Сменный движок преобразования"),
+        modules: z.array(z.string().regex(/^[a-z][a-z0-9_-]*$/)).optional()
+          .describe("Коды модулей Frontier, например [ma, qc]"),
         outputDirectory: z
           .string()
           .optional()
           .describe("Локальный каталог импорта на машине MCP-сервера"),
       },
     },
-    async ({ pageId, converter, outputDirectory }) => {
+    async ({ pageId, converter, modules, outputDirectory }) => {
       try {
         const page = await client.getPage(pageId, [
           "space",
@@ -41,7 +43,7 @@ export function registerExportMarkdown(
           page,
           createResolver(client, client.sourceBaseUrl, process.env.JIRA_URL),
         );
-        const result = await renderPage(prepared, getConverter(converter));
+        const result = await renderPage(prepared, getConverter(converter), modules);
         if (outputDirectory !== undefined) {
           if (!outputDirectory.trim())
             throw new Error("outputDirectory cannot be empty");

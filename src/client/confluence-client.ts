@@ -56,6 +56,11 @@ export class ConfluenceClient {
     );
   }
 
+  async getUserByKey(key: string): Promise<{ username: string; displayName?: string }> {
+    return this.http.get<{ username: string; displayName?: string }>(
+      `/rest/api/user?key=${encodeURIComponent(key)}`,
+    );
+  }
   async createPage(body: CreatePageBody): Promise<ConfluencePage> {
     const query = "?expand=space,version,body.atlas_doc_format";
     return this.http.post<ConfluencePage>(

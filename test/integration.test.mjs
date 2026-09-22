@@ -30,7 +30,7 @@ test("CLI import, repeat and HTTP 404 preserve imports; no Jira credentials need
     env: { CONFLUENCE_URL: base, CONFLUENCE_API_TOKEN: "test-token" },
     timeout: 20000,
   };
-  const args = [resolve("dist/import-confluence.js"), "123", "--out", dir];
+  const args = [resolve("dist/import-confluence.js"), "123", "--out", dir, "--modules=ma,qc"];
   try {
     const first = JSON.parse(
       (await run(process.execPath, args, options)).stdout,
@@ -40,6 +40,7 @@ test("CLI import, repeat and HTTP 404 preserve imports; no Jira credentials need
       ["created"],
     );
     assert.equal(requests, 1, "page is fetched once per import");
+    assert.ok((await readFile(join(dir, "123.md"), "utf8")).includes('modules: ["ma","qc"]\n'));
     const second = JSON.parse(
       (await run(process.execPath, args, options)).stdout,
     );
@@ -79,6 +80,8 @@ test("MCP text export and disk import share the same implementation", async () =
   const response = await handler({ pageId: "123", converter: "remark" });
   assert.notEqual(response.isError, true);
   assert.match(response.content[0].text, /^---/);
+  const withModules = await handler({ pageId: "123", converter: "remark", modules: ["ma", "qc"] });
+  assert.ok(withModules.content[0].text.includes('modules: ["ma","qc"]\n'));
   const dir = await mkdtemp(join(tmpdir(), "confluence-mcp-"));
   try {
     const imported = await handler({

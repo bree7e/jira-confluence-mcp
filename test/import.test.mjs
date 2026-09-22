@@ -15,6 +15,7 @@ import {
   preparePage,
   renderPage,
   createResolver,
+  parseModules,
 } from "../dist/import/export-page.js";
 import { saveImport } from "../dist/import/importer.js";
 import { ConfluenceClient } from "../dist/client/confluence-client.js";
@@ -25,6 +26,8 @@ const fixture = JSON.parse(
 const resolver = {
   pageUrl: (id) =>
     "https://example.com/wiki/pages/viewpage.action?pageId=" + id,
+  userUrl: (username) => "https://example.com/wiki/display/~" + username,
+  resolveUser: async (key) => ({ username: "resolved." + key, displayName: "Resolved User" }),
   absoluteUrl: (url) => new URL(url, "https://example.com/wiki/").href,
   findPage: async () => "456",
   attachment: async (id, name) =>
@@ -252,4 +255,32 @@ test("empty cells preserve the number of table columns", async () => {
         converter.id + ": " + row,
       );
   }
+});
+
+test("Confluence user links and optional Frontier modules", async () => {
+  const page = structuredClone(fixture);
+  page.body.storage.value =
+    '<table><tr><th>Поле</th><th>Значение</th></tr><tr><td>Ответственный аналитик</td><td><ac:link><ri:user ri:username="irina.pavlenkova.ext@idp.zyfra.com"/><ac:plain-text-link-body><![CDATA[Ирина Павленкова]]></ac:plain-text-link-body></ac:link></td></tr></table>';
+  const prepared = await preparePage(page, resolver);
+  const plain = await renderPage(prepared, converters.remark);
+  assert.doesNotMatch(plain.markdown, /^modules:/m);
+  const result = await renderPage(prepared, converters.remark, parseModules("ma,qc"));
+  assert.ok(result.markdown.includes('modules: ["ma","qc"]\n'));
+  assert.match(
+    result.markdown,
+    /\[Ирина Павленкова\]\(https:\/\/example\.com\/wiki\/display\/~irina\.pavlenkova\.ext@idp\.zyfra\.com\)/,
+  );
+  page.body.storage.value =
+    '<p><ac:link><ri:user ri:userkey="abc123"/></ac:link></p>';
+  const byKey = await renderPage(
+    await preparePage(page, resolver),
+    converters.remark,
+  );
+  assert.deepEqual(byKey.warnings, []);
+  assert.match(
+    byKey.markdown,
+    /\[Resolved User\]\(https:\/\/example\.com\/wiki\/display\/~resolved\.abc123\)/,
+  );
+  assert.deepEqual(parseModules("ma, qc,ma"), ["ma", "qc"]);
+  assert.throws(() => parseModules("ma,"), /Invalid modules/);
 });

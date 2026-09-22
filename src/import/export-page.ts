@@ -4,7 +4,14 @@ import type { ConfluencePage } from "../types/confluence.js";
 import type { MarkdownConverter } from "./converters.js";
 import { normalize, type SourceResolver } from "./normalize.js";
 
-export const FORMAT_VERSION = "3";
+export const FORMAT_VERSION = "4";
+
+export function parseModules(value: string): string[] {
+  const modules = value.split(",").map((module) => module.trim());
+  if (modules.some((module) => !/^[a-z][a-z0-9_-]*$/.test(module)))
+    throw new Error("Invalid modules: use comma-separated lowercase module codes");
+  return [...new Set(modules)];
+}
 export interface ExportResult {
   markdown: string;
   pageId: string;
@@ -23,11 +30,19 @@ export function createResolver(
 ): SourceResolver {
   const pages = new Map<string, Promise<string>>();
   const attachments = new Map<string, Promise<string>>();
+  const users = new Map<string, Promise<{ username: string; displayName?: string }>>();
   return {
     pageUrl: (id) =>
       baseUrl.replace(/\/+$/, "") +
       "/pages/viewpage.action?pageId=" +
       encodeURIComponent(id),
+    userUrl: (username) =>
+      baseUrl.replace(/\/+$/, "") +
+      "/display/~" + encodeURIComponent(username).replace(/%40/gi, "@"),
+    resolveUser(key) {
+      if (!users.has(key)) users.set(key, client.getUserByKey(key));
+      return users.get(key)!;
+    },
     absoluteUrl: (value) => client.resolveUrl(value),
     findPage(title, space) {
       const key = JSON.stringify([space, title]);
@@ -85,6 +100,7 @@ export async function preparePage(
 export async function renderPage(
   prepared: Awaited<ReturnType<typeof preparePage>>,
   converter: MarkdownConverter,
+  modules: string[] = [],
 ): Promise<ExportResult> {
   const { page, source } = prepared;
   const quote = (value: string) => JSON.stringify(value); // JSON strings are valid YAML scalars.
@@ -96,6 +112,7 @@ export async function renderPage(
     "space: " + quote(page.space!.key),
     "version: " + page.version!.number,
     "updated: " + quote(page.version!.when.slice(0, 10)),
+    ...(modules.length ? ["modules: " + JSON.stringify(modules)] : []),
     "---",
   ].join("\n");
   const escapedTitle = page.title

@@ -155,7 +155,7 @@ npm run inspect:local # Inspector с переменными из .env
 ```powershell
 npm ci
 npm run build
-node --env-file=.env dist/import-confluence.js 468684852 --out imports
+node --env-file=.env dist/import-confluence.js 468684852 --out imports --modules=ma,qc
 ```
 
 CLI использует CONFLUENCE_URL и CONFLUENCE_API_TOKEN.
@@ -190,6 +190,8 @@ Fixture — JSON страницы REST API с id, title, space, version, body.st
 ### Формат и ограничения
 
 Файл начинается с YAML frontmatter: title, source, page_id (строка), space, version, updated.
+При указании `--modules=ma,qc` добавляется массив `modules: ["ma","qc"]`.
+Параметр необязателен; коды модулей указываются через запятую.
 updated — дата версии страницы в часовом поясе исходного timestamp, не время импорта.
 После frontmatter расположен единственный H1 с названием страницы.
 
@@ -210,6 +212,7 @@ updated — дата версии страницы в часовом поясе 
   Неоднозначные размеры объединений отмечаются в отчёте; превышение 512 колонок прерывает импорт.
 - Картинки становятся обычными ссылками на оригиналы, без скачивания и встраивания.
   Вложения ищутся через API, включая вложения другой страницы.
+- Ссылки на пользователей, включая ответственного аналитика, сохраняются как ссылки на профиль Confluence.
 - Ссылки на страницы и исходные якоря пока ведут в Confluence. В манифесте сохраняются
   распознанные linkedPageIds для будущего режима Obsidian; ссылки без ID не угадываются.
 - Контейнеры section/column/panel/expand/info/note/warning/tip раскрываются; toc удаляется.
@@ -249,6 +252,7 @@ updated — дата версии страницы в часовом поясе 
 {
   "pageId": "468684852",
   "converter": "remark",
+  "modules": ["ma", "qc"],
   "outputDirectory": "D:/knowledge/confluence"
 }
 ```

@@ -4,6 +4,8 @@ import type { ConfluencePage } from "../types/confluence.js";
 
 export interface SourceResolver {
   pageUrl(id: string): string;
+  userUrl(username: string): string;
+  resolveUser(key: string): Promise<{ username: string; displayName?: string }>;
   absoluteUrl(value: string): string;
   findPage(title: string, space: string): Promise<string>;
   attachment(pageId: string, filename: string): Promise<string>;
@@ -83,11 +85,19 @@ export async function normalize(
       node.find("ac\\:plain-text-link-body,ac\\:link-body").text() ||
       resource.attr("ri:content-title") ||
       node.find("ri\\:attachment").attr("ri:filename") ||
-      node.text() ||
-      "Ссылка";
+      node.text();
     try {
-      if (node.find("ri\\:user").length) {
-        node.replaceWith($("<span></span>").text(label));
+      const user = node.find("ri\\:user").first();
+      if (user.length) {
+        const key = user.attr("ri:userkey");
+        const resolved = !user.attr("ri:username") && key
+          ? await resolver.resolveUser(key)
+          : undefined;
+        const username = user.attr("ri:username") || resolved?.username;
+        if (!username) throw new Error("User link has no username or userkey");
+        node.replaceWith(
+          makeLink(label || resolved?.displayName || username, safeUrl(resolver.userUrl(username))),
+        );
         continue;
       }
       const id = resource.length ? await target(resource) : page.id;
@@ -98,7 +108,7 @@ export async function normalize(
       if (node.attr("ac:anchor"))
         href += "#" + encodeURIComponent(node.attr("ac:anchor")!);
       links.add(id);
-      node.replaceWith(makeLink(label, safeUrl(href)));
+      node.replaceWith(makeLink(label || "Ссылка", safeUrl(href)));
     } catch (error) {
       note("Link " + label + ": " + (error as Error).message);
       node.replaceWith(
